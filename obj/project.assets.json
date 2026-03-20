@@ -400,23 +400,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\criwanim.silva\\.nuget\\packages\\": {},
+    "C:\\Users\\criwa\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\criwanim.silva\\source\\repos\\RoLauncher\\RoLauncher\\RoLauncher.csproj",
+      "projectUniqueName": "C:\\Users\\criwa\\source\\repos\\RoLauncher\\RoLauncher.csproj",
       "projectName": "RoLauncher",
-      "projectPath": "C:\\Users\\criwanim.silva\\source\\repos\\RoLauncher\\RoLauncher\\RoLauncher.csproj",
-      "packagesPath": "C:\\Users\\criwanim.silva\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\criwanim.silva\\source\\repos\\RoLauncher\\RoLauncher\\obj\\",
+      "projectPath": "C:\\Users\\criwa\\source\\repos\\RoLauncher\\RoLauncher.csproj",
+      "packagesPath": "C:\\Users\\criwa\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\criwa\\source\\repos\\RoLauncher\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\criwanim.silva\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\criwa\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -429,6 +429,7 @@
       },
       "frameworks": {
         "net10.0-windows7.0": {
+          "framework": "net10.0-windows7.0",
           "targetAlias": "net10.0-windows",
           "projectReferences": {}
         }
@@ -443,10 +444,11 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net10.0-windows7.0": {
+        "framework": "net10.0-windows7.0",
         "targetAlias": "net10.0-windows",
         "dependencies": {
           "CommunityToolkit.Mvvm": {
@@ -477,7 +479,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

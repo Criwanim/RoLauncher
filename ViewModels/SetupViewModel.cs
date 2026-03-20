@@ -19,29 +19,40 @@ public partial class SetupViewModel : ObservableObject
 
     public ObservableCollection<AccountProfile> Accounts { get; } = new();
 
+    // 🎮 Caminho do jogo
     [ObservableProperty]
     private string gameInstallPath = string.Empty;
 
+    // 📁 AppData Base
     [ObservableProperty]
-    private string runtimeTokenPath = string.Empty;
+    private string appDataBasePath = string.Empty;
+
+    // 📁 AppData PC (XD\PC)
+    [ObservableProperty]
+    private string appDataPcPath = string.Empty;
 
     [ObservableProperty]
     private string status = "Pronto";
 
     [ObservableProperty]
-[NotifyCanExecuteChangedFor(nameof(CaptureTokensCommand))]
-private AccountProfile? selectedAccount;
+    [NotifyCanExecuteChangedFor(nameof(CaptureTokensCommand))]
+    private AccountProfile? selectedAccount;
 
     public SetupViewModel()
     {
         _settings = _settingsService.Load();
 
         GameInstallPath = _settings.GameInstallPath;
-        RuntimeTokenPath = _settings.RuntimeTokenPath;
+        AppDataBasePath = _settings.AppDataBasePath;
+        AppDataPcPath = _settings.AppDataPcPath;
 
         foreach (var account in _settings.Accounts.OrderBy(a => a.SlotNumber))
             Accounts.Add(account);
     }
+
+    // =========================================================
+    // 🎮 BROWSE GAME PATH
+    // =========================================================
 
     [RelayCommand]
     private void BrowseGameInstallPath()
@@ -52,42 +63,70 @@ private AccountProfile? selectedAccount;
             Title = "Selecione a pasta de instalação do jogo"
         };
 
-        bool? result = dialog.ShowDialog();
-
-        if (result == true)
+        if (dialog.ShowDialog() == true)
             GameInstallPath = dialog.FolderName;
     }
 
+    // =========================================================
+    // 📁 BROWSE APPDATA BASE
+    // =========================================================
+
     [RelayCommand]
-    private void BrowseRuntimeTokenPath()
+    private void BrowseAppDataBasePath()
     {
         var dialog = new OpenFolderDialog
         {
             Multiselect = false,
-            Title = "Selecione a pasta dos tokens"
+            Title = "Selecione a pasta base do AppData (LocalLow)"
         };
 
-        bool? result = dialog.ShowDialog();
-
-        if (result == true)
-            RuntimeTokenPath = dialog.FolderName;
+        if (dialog.ShowDialog() == true)
+            AppDataBasePath = dialog.FolderName;
     }
+
+    // =========================================================
+    // 📁 BROWSE APPDATA PC
+    // =========================================================
+
+    [RelayCommand]
+    private void BrowseAppDataPcPath()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Multiselect = false,
+            Title = "Selecione a pasta XD\\PC"
+        };
+
+        if (dialog.ShowDialog() == true)
+            AppDataPcPath = dialog.FolderName;
+    }
+
+    // =========================================================
+    // 💾 SALVAR CAMINHOS
+    // =========================================================
 
     [RelayCommand]
     private void SavePaths()
     {
         _settings.GameInstallPath = GameInstallPath;
-        _settings.RuntimeTokenPath = RuntimeTokenPath;
+        _settings.AppDataBasePath = AppDataBasePath;
+        _settings.AppDataPcPath = AppDataPcPath;
 
         _settingsService.Save(_settings);
+
         Status = "Caminhos salvos com sucesso.";
     }
+
+    // =========================================================
+    // 🆕 CRIAR NOVA CONFIGURAÇÃO (NOVA CONTA)
+    // =========================================================
 
     [RelayCommand]
     private void NewConfiguration()
     {
         _settings.GameInstallPath = GameInstallPath;
-        _settings.RuntimeTokenPath = RuntimeTokenPath;
+        _settings.AppDataBasePath = AppDataBasePath;
+        _settings.AppDataPcPath = AppDataPcPath;
 
         var account = _environmentService.CreateEnvironment(_settings);
         account.ShortcutPath = _shortcutService.CreateDesktopShortcut(account);
@@ -103,11 +142,16 @@ private AccountProfile? selectedAccount;
         Status = $"{account.Code} criado. Faça login no jogo e depois clique em 'Capturar tokens'.";
     }
 
+    // =========================================================
+    // 🔐 CAPTURAR TOKENS
+    // =========================================================
+
     [RelayCommand(CanExecute = nameof(CanCaptureTokens))]
     private void CaptureTokens()
     {
         _settings.GameInstallPath = GameInstallPath;
-        _settings.RuntimeTokenPath = RuntimeTokenPath;
+        _settings.AppDataBasePath = AppDataBasePath;
+        _settings.AppDataPcPath = AppDataPcPath;
 
         _tokenService.Capture(_settings, SelectedAccount!);
         _settingsService.Save(_settings);

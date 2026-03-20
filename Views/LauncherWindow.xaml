@@ -2,61 +2,69 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Abrir Contas"
-        Width="1100"
-        Height="700"
-        WindowStartupLocation="CenterOwner">
+        Width="800"
+        Height="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Window.Background>
+        <ImageBrush ImageSource="pack://application:,,,/Assets/bg.jpg"
+                Stretch="UniformToFill"/>
+    </Window.Background>
 
     <Grid Background="#14000000">
-        <Border Width="980"
-                Padding="24"
+
+        <Border Width="740"
+                Padding="16"
                 Background="White"
-                CornerRadius="18"
+                CornerRadius="14"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
 
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="10"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="10"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <!-- Título -->
                 <StackPanel Grid.Row="0">
                     <TextBlock Text="Abrir Contas"
-                               FontSize="26"
+                               FontSize="20"
                                FontWeight="Bold"/>
 
                     <TextBlock Text="Selecione as contas que deseja abrir."
-                               Margin="0,6,0,0"
+                               Margin="0,4,0,0"
+                               FontSize="12"
                                Opacity="0.75"/>
                 </StackPanel>
 
                 <!-- Botões -->
                 <StackPanel Grid.Row="2"
                             Orientation="Horizontal">
-                    <Button Width="140"
-                            Height="42"
+
+                    <Button Width="110"
+                            Height="32"
                             Content="Marcar todas"
                             Command="{Binding SelectAllCommand}" />
 
-                    <Button Width="140"
-                            Height="42"
-                            Margin="12,0,0,0"
-                            Content="Limpar seleção"
+                    <Button Width="120"
+                            Height="32"
+                            Margin="8,0,0,0"
+                            Content="Limpar"
                             Command="{Binding ClearSelectionCommand}" />
 
-                    <Button Width="170"
-                            Height="42"
-                            Margin="12,0,0,0"
+                    <Button Width="140"
+                            Height="32"
+                            Margin="8,0,0,0"
                             Content="Abrir selecionadas"
                             Command="{Binding OpenSelectedCommand}" />
 
-                    <Button Width="120"
-                            Height="42"
-                            Margin="12,0,0,0"
+                    <Button Width="110"
+                            Height="32"
+                            Margin="8,0,0,0"
                             Content="Abrir todas"
                             Command="{Binding OpenAllCommand}" />
                 </StackPanel>
@@ -64,8 +72,8 @@
                 <!-- Conteúdo -->
                 <Grid Grid.Row="4">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.2*"/>
-                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="10"/>
                         <ColumnDefinition Width="1*"/>
                     </Grid.ColumnDefinitions>
 
@@ -75,52 +83,55 @@
                              BorderThickness="1"
                              HorizontalContentAlignment="Stretch"
                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="8"
-                                        Padding="12"
+                                <Border Margin="6"
+                                        Padding="8"
                                         BorderBrush="#E4E4E4"
                                         BorderThickness="1"
-                                        CornerRadius="10">
+                                        CornerRadius="8">
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="28"/>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="110"/>
                                         </Grid.ColumnDefinitions>
 
                                         <CheckBox Grid.Column="0"
-                                                  Margin="0,4,0,0"
                                                   VerticalAlignment="Top"
-                                                  IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}" />
 
                                         <StackPanel Grid.Column="1">
+
                                             <TextBlock Text="{Binding DisplayName}"
-                                                       FontSize="15"
+                                                       FontSize="13"
                                                        FontWeight="SemiBold"/>
 
                                             <TextBlock Text="{Binding Code}"
-                                                       Margin="0,4,0,0"
+                                                       FontSize="12"
                                                        Opacity="0.85"/>
 
                                             <TextBlock Text="{Binding InstanceFolderPath}"
-                                                       Margin="0,4,0,0"
+                                                       FontSize="11"
                                                        Opacity="0.70"
                                                        TextWrapping="Wrap"/>
 
                                             <TextBlock Text="{Binding LastLaunchText, StringFormat=Última abertura: {0}}"
-                                                       Margin="0,6,0,0"
-                                                       FontSize="12"
+                                                       Margin="0,4,0,0"
+                                                       FontSize="10"
                                                        Opacity="0.60"/>
                                         </StackPanel>
 
                                         <Border Grid.Column="2"
-                                                Padding="8"
+                                                Padding="6"
                                                 Background="#F3F3F3"
-                                                CornerRadius="8"
+                                                CornerRadius="6"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Status}" />
+                                            <TextBlock Text="{Binding Status}"
+                                                       FontSize="11"/>
                                         </Border>
                                     </Grid>
                                 </Border>
@@ -130,25 +141,28 @@
 
                     <!-- Painel lateral -->
                     <Border Grid.Column="2"
-                            Padding="16"
+                            Padding="12"
                             Background="#FAFAFA"
-                            CornerRadius="10">
+                            CornerRadius="8">
+
                         <StackPanel>
-                            <TextBlock Text="Fluxo da abertura"
-                                       FontSize="16"
+                            <TextBlock Text="Fluxo"
+                                       FontSize="14"
                                        FontWeight="SemiBold"/>
 
-                            <TextBlock Margin="0,10,0,0"
+                            <TextBlock Margin="0,6,0,0"
+                                       FontSize="11"
                                        TextWrapping="Wrap"
-                                       Text="1. Restaura os tokens da conta selecionada.&#10;2. Renomeia para o padrão do jogo.&#10;3. Abre a instância correspondente.&#10;4. Repete para a próxima conta." />
+                                       Text="1. Restaura tokens&#10;2. Renomeia&#10;3. Abre instância&#10;4. Próxima conta" />
 
-                            <Separator Margin="0,16,0,16"/>
+                            <Separator Margin="0,10,0,10"/>
 
                             <TextBlock Text="Status geral"
-                                       FontSize="16"
+                                       FontSize="14"
                                        FontWeight="SemiBold"/>
 
-                            <TextBlock Margin="0,10,0,0"
+                            <TextBlock Margin="0,6,0,0"
+                                       FontSize="11"
                                        Text="{Binding Status}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>

@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "3ibcw0OfY+k=",
+  "dgSpecHash": "rv87KeTK4wY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\criwanim.silva\\source\\repos\\RoLauncher\\RoLauncher\\RoLauncher.csproj",
+  "projectFilePath": "C:\\Users\\criwa\\source\\repos\\RoLauncher\\RoLauncher.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\criwanim.silva\\.nuget\\packages\\communitytoolkit.mvvm\\8.4.0\\communitytoolkit.mvvm.8.4.0.nupkg.sha512",
-    "C:\\Users\\criwanim.silva\\.nuget\\packages\\materialdesigncolors\\5.3.1\\materialdesigncolors.5.3.1.nupkg.sha512",
-    "C:\\Users\\criwanim.silva\\.nuget\\packages\\materialdesignthemes\\5.3.1\\materialdesignthemes.5.3.1.nupkg.sha512",
-    "C:\\Users\\criwanim.silva\\.nuget\\packages\\microsoft.xaml.behaviors.wpf\\1.1.77\\microsoft.xaml.behaviors.wpf.1.1.77.nupkg.sha512"
+    "C:\\Users\\criwa\\.nuget\\packages\\communitytoolkit.mvvm\\8.4.0\\communitytoolkit.mvvm.8.4.0.nupkg.sha512",
+    "C:\\Users\\criwa\\.nuget\\packages\\materialdesigncolors\\5.3.1\\materialdesigncolors.5.3.1.nupkg.sha512",
+    "C:\\Users\\criwa\\.nuget\\packages\\materialdesignthemes\\5.3.1\\materialdesignthemes.5.3.1.nupkg.sha512",
+    "C:\\Users\\criwa\\.nuget\\packages\\microsoft.xaml.behaviors.wpf\\1.1.77\\microsoft.xaml.behaviors.wpf.1.1.77.nupkg.sha512"
   ],
   "logs": []
 }

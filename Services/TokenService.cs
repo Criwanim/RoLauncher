@@ -8,11 +8,15 @@ public sealed class TokenService
     public void Capture(AppSettings settings, AccountProfile account)
     {
         EnsureRules(settings);
+
+        if (string.IsNullOrWhiteSpace(settings.AppDataPcPath))
+            throw new InvalidOperationException("AppData PC Path não configurado.");
+
         Directory.CreateDirectory(account.BackupTokenFolderPath);
 
         foreach (var rule in settings.TokenRules)
         {
-            string source = Path.Combine(settings.RuntimeTokenPath, rule.RuntimeFileName);
+            string source = Path.Combine(settings.AppDataPcPath, rule.RuntimeFileName);
             string target = Path.Combine(account.BackupTokenFolderPath, rule.BackupFileName);
 
             if (!File.Exists(source))
@@ -26,10 +30,13 @@ public sealed class TokenService
     {
         EnsureRules(settings);
 
+        if (string.IsNullOrWhiteSpace(settings.AppDataPcPath))
+            throw new InvalidOperationException("AppData PC Path não configurado.");
+
         foreach (var rule in settings.TokenRules)
         {
             string source = Path.Combine(account.BackupTokenFolderPath, rule.BackupFileName);
-            string target = Path.Combine(settings.RuntimeTokenPath, rule.RuntimeFileName);
+            string target = Path.Combine(settings.AppDataPcPath, rule.RuntimeFileName);
 
             if (!File.Exists(source))
                 throw new FileNotFoundException($"Backup não encontrado: {source}");

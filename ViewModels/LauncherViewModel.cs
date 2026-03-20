@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RoLauncher.Services;
+using RoLauncher.Models;
 
 namespace RoLauncher.ViewModels;
 
@@ -11,7 +12,7 @@ public partial class LauncherViewModel : ObservableObject
     private readonly SettingsService _settingsService = new();
     private readonly TokenService _tokenService = new();
     private readonly GameLaunchService _gameLaunchService = new();
-    private readonly Models.AppSettings _settings;
+    private readonly AppSettings _settings;
 
     private bool _isBusy;
 
