@@ -1,140 +1,92 @@
-﻿using RoLauncher.Models;
 using System.IO;
 using System.Text.Json;
+using RoLauncher.Models;
 
 namespace RoLauncher.Services;
 
 public sealed class SettingsService
 {
-    private static readonly string BaseFolder =
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "RoLauncher");
+    private static readonly string BaseFolder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "RoLauncher");
 
-    private static readonly string SettingsFile =
-        Path.Combine(BaseFolder, "settings.json");
+    private static readonly string SettingsFile = Path.Combine(BaseFolder, "settings.json");
 
     private readonly JsonSerializerOptions _options = new()
     {
-        WriteIndented = true
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
     };
+
+    public string SettingsFilePath => SettingsFile;
 
     public AppSettings Load()
     {
         Directory.CreateDirectory(BaseFolder);
 
-        AppSettings settings;
-
         if (!File.Exists(SettingsFile))
         {
-            settings = new AppSettings();
+            return CreateDefaultSettings();
         }
-        else
+
+        var json = File.ReadAllText(SettingsFile);
+        var persisted = JsonSerializer.Deserialize<PersistedSettings>(json, _options) ?? new PersistedSettings();
+
+        var settings = new AppSettings
         {
-            string json = File.ReadAllText(SettingsFile);
-            settings = JsonSerializer.Deserialize<AppSettings>(json, _options)
-                       ?? new AppSettings();
-        }
+            GameInstallPath = persisted.GameInstallPath,
+            AppDataBasePath = persisted.AppDataBasePath,
+            AppDataPcPath = string.IsNullOrWhiteSpace(persisted.AppDataPcPath)
+                ? persisted.RuntimeTokenPath
+                : persisted.AppDataPcPath,
+            InstancesRootPath = persisted.InstancesRootPath,
+            TokenRules = persisted.TokenRules ?? new List<TokenRule>(),
+            Accounts = persisted.Accounts ?? new List<AccountProfile>()
+        };
 
-        bool changed = false;
-
-        // 🔹 Detectar AppData LocalLow
-        if (string.IsNullOrWhiteSpace(settings.AppDataBasePath) ||
-            string.IsNullOrWhiteSpace(settings.AppDataPcPath))
-        {
-            var appData = DetectAppDataPaths();
-
-            if (appData != null)
-            {
-                settings.AppDataBasePath = appData.Value.basePath;
-                settings.AppDataPcPath = appData.Value.pcPath;
-                changed = true;
-            }
-        }
-
-        // 🔹 Detectar instalação do jogo
-        if (string.IsNullOrWhiteSpace(settings.GameInstallPath))
-        {
-            var gamePath = DetectGameInstallPath();
-
-            if (!string.IsNullOrWhiteSpace(gamePath))
-            {
-                settings.GameInstallPath = gamePath;
-                changed = true;
-            }
-        }
-
-        // Salvar automaticamente se algo foi detectado
-        if (changed)
-            Save(settings);
-
+        PathLayoutService.NormalizeSettings(settings);
+        NormalizeAccounts(settings.Accounts);
         return settings;
     }
 
     public void Save(AppSettings settings)
     {
         Directory.CreateDirectory(BaseFolder);
+        PathLayoutService.NormalizeSettings(settings);
+        NormalizeAccounts(settings.Accounts);
 
-        string json = JsonSerializer.Serialize(settings, _options);
+        var json = JsonSerializer.Serialize(settings, _options);
         File.WriteAllText(SettingsFile, json);
     }
 
-    // =========================================================
-    // 🔍 DETECÇÃO DO APPDATA LOCALLOW
-    // =========================================================
-
-    private static (string basePath, string pcPath)? DetectAppDataPaths()
+    private static AppSettings CreateDefaultSettings()
     {
-        string local = Environment.GetFolderPath(
-            Environment.SpecialFolder.LocalApplicationData);
-
-        // C:\Users\<user>\AppData
-        string appDataRoot = Directory.GetParent(local)!.FullName;
-
-        string localLow = Path.Combine(appDataRoot, "LocalLow");
-
-        string basePath = Path.Combine(
-            localLow,
-            "X_D_ Network Inc_",
-            "Ragnarok M_ Classic Global");
-
-        string pcPath = Path.Combine(basePath, "XD", "PC");
-
-        if (Directory.Exists(basePath) && Directory.Exists(pcPath))
-            return (basePath, pcPath);
-
-        return null;
+        return new AppSettings();
     }
 
-    // =========================================================
-    // 🎮 DETECÇÃO DO JOGO EM TODOS OS DISCOS
-    // =========================================================
-
-    private static string? DetectGameInstallPath()
+    private static void NormalizeAccounts(List<AccountProfile> accounts)
     {
-        foreach (var drive in DriveInfo.GetDrives())
+        foreach (var account in accounts)
         {
-            try
-            {
-                // Ignora drives não prontos (CD, USB vazio, etc)
-                if (!drive.IsReady)
-                    continue;
-
-                string path = Path.Combine(
-                    drive.RootDirectory.FullName,
-                    "Program Files (x86)",
-                    "XD",
-                    "Ragnarok M Classic Global");
-
-                if (Directory.Exists(path))
-                    return path;
-            }
-            catch
-            {
-                // Ignora erros de acesso
-            }
+            account.Code ??= string.Empty;
+            account.DisplayName = string.IsNullOrWhiteSpace(account.DisplayName)
+                ? account.Code
+                : account.DisplayName.Trim();
+            account.InstanceFolderPath ??= string.Empty;
+            account.ExecutablePath ??= string.Empty;
+            account.ShortcutPath ??= string.Empty;
+            account.BackupTokenFolderPath ??= string.Empty;
         }
+    }
 
-        return null;
+    private sealed class PersistedSettings
+    {
+        public string GameInstallPath { get; set; } = string.Empty;
+        public string AppDataBasePath { get; set; } = string.Empty;
+        public string AppDataPcPath { get; set; } = string.Empty;
+        public string InstancesRootPath { get; set; } = string.Empty;
+        public string RuntimeTokenPath { get; set; } = string.Empty;
+        public List<TokenRule>? TokenRules { get; set; }
+        public List<AccountProfile>? Accounts { get; set; }
     }
 }

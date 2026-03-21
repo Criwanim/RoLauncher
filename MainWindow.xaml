@@ -1,42 +1,42 @@
-﻿<Window x:Class="RoLauncher.MainWindow"
+<Window x:Class="RoLauncher.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="RO Launcher"
-        Width="800 "
-        Height="450"
+        Width="1100"
+        Height="680"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize"
-        Style="{StaticResource MaterialDesignWindow}">
-
+        ResizeMode="NoResize">
     <Grid>
-        <Image Source="/Assets/bg.jpg" Stretch="UniformToFill" Opacity="0.8"/>
-        <Rectangle Fill="#55000000"/>
+        <Grid.Background>
+            <ImageBrush ImageSource="Assets/bg.jpg" Stretch="UniformToFill" />
+        </Grid.Background>
 
-        <materialDesign:Card Width="420"
-                             Padding="28"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center">
+        <Border Background="#660B1120" />
+
+        <Border Width="440"
+                Padding="28"
+                Background="#F8FFFFFF"
+                CornerRadius="18"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
             <StackPanel>
                 <TextBlock Text="RO Launcher"
-                           FontSize="28"
+                           FontSize="30"
                            FontWeight="Bold"
-                           HorizontalAlignment="Center"/>
+                           Foreground="{StaticResource PrimaryBrush}" />
 
-                <TextBlock Text="Account manager tool"
-                           Margin="0,8,0,24"
-                           Opacity="0.75"
-                           TextAlignment="Center"/>
+                <TextBlock Margin="0,8,0,24"
+                           Text="Escolha entre preparar o ambiente das contas ou abrir o launcher com as configurações salvas."
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource MutedBrush}" />
 
-                <Button Content="Configuration"
-                        Height="48"
-                        Margin="0,0,0,12"
-                        Click="OpenSetup_Click"/>
+                <Button Content="Configurar contas"
+                        Click="OpenSetup_Click" />
 
-                <Button Content="Open Account"
-                        Height="48"
-                        Click="OpenLauncher_Click"/>
+                <Button Content="Abrir launcher"
+                        Margin="0,0,0,0"
+                        Click="OpenLauncher_Click" />
             </StackPanel>
-        </materialDesign:Card>
+        </Border>
     </Grid>
 </Window>

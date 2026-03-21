@@ -1,4 +1,4 @@
-﻿namespace RoLauncher.Models;
+namespace RoLauncher.Models;
 
 public sealed class TokenRule
 {

@@ -1,174 +1,147 @@
-﻿<Window x:Class="RoLauncher.Views.LauncherWindow"
+<Window x:Class="RoLauncher.Views.LauncherWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Abrir Contas"
-        Width="800"
-        Height="450"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Window.Background>
-        <ImageBrush ImageSource="pack://application:,,,/Assets/bg.jpg"
-                Stretch="UniformToFill"/>
-    </Window.Background>
+        xmlns:vm="clr-namespace:RoLauncher.ViewModels"
+        Title="Launcher de Contas"
+        Width="1180"
+        Height="760"
+        MinWidth="1020"
+        MinHeight="680"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-    <Grid Background="#14000000">
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="Launcher de contas"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource PrimaryBrush}" />
+            <TextBlock Margin="0,6,0,0"
+                       Text="Restaura os tokens da conta selecionada, abre a instância correspondente e registra o último acesso."
+                       Foreground="{StaticResource MutedBrush}" />
+        </StackPanel>
 
-        <Border Width="740"
-                Padding="16"
-                Background="White"
-                CornerRadius="14"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <Button Content="Marcar todas"
+                    Command="{Binding SelectAllCommand}" />
+            <Button Content="Limpar seleção"
+                    Command="{Binding ClearSelectionCommand}" />
+            <Button Content="Abrir selecionadas"
+                    Command="{Binding OpenSelectedCommand}" />
+            <Button Content="Abrir todas"
+                    Command="{Binding OpenAllCommand}" />
+        </StackPanel>
 
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="10"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.4*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
 
-                <!-- Título -->
-                <StackPanel Grid.Row="0">
-                    <TextBlock Text="Abrir Contas"
-                               FontSize="20"
-                               FontWeight="Bold"/>
+            <Border Grid.Column="0"
+                    Background="White"
+                    BorderBrush="#E5E7EB"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="12">
+                <ListBox ItemsSource="{Binding Accounts}"
+                         BorderThickness="0"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:LauncherAccountItemViewModel}">
+                            <Border Margin="4"
+                                    Padding="12"
+                                    BorderBrush="#E5E7EB"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="180" />
+                                    </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="Selecione as contas que deseja abrir."
-                               Margin="0,4,0,0"
-                               FontSize="12"
-                               Opacity="0.75"/>
+                                    <CheckBox Grid.Column="0"
+                                              VerticalAlignment="Top"
+                                              Margin="0,4,0,0"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Margin="0,4,0,0"
+                                                   Text="{Binding Code}"
+                                                   Foreground="{StaticResource MutedBrush}" />
+                                        <TextBlock Margin="0,8,0,0"
+                                                   Text="{Binding InstanceFolderPath}"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Text="{Binding LastLaunchText, StringFormat='Última abertura: {0}'}"
+                                                   Foreground="{StaticResource MutedBrush}" />
+                                    </StackPanel>
+
+                                    <Border Grid.Column="2"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            Padding="10,6"
+                                            Background="#EEF2FF"
+                                            CornerRadius="999">
+                                        <TextBlock Text="{Binding Status}"
+                                                   FontWeight="SemiBold" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <Border Grid.Column="2"
+                    Background="White"
+                    BorderBrush="#E5E7EB"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Fluxo da abertura"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource PrimaryBrush}" />
+
+                    <TextBlock Margin="0,12,0,0"
+                               TextWrapping="Wrap"
+                               Text="1. Restaura os arquivos definidos em TokenRules para a pasta AppData LocalLow\XD\PC.&#10;2. Abre o executável da instância da conta.&#10;3. Aguarda a inicialização básica do processo.&#10;4. Atualiza o último horário de abertura no settings.json." />
+
+                    <Separator Margin="0,16,0,16" />
+
+                    <TextBlock Text="Dica"
+                               FontWeight="SemiBold" />
+                    <TextBlock Margin="0,8,0,0"
+                               TextWrapping="Wrap"
+                               Text="Se a restauração falhar, revise TokenRules no settings.json e confirme se AppData LocalLow\XD\PC está correto." />
                 </StackPanel>
+            </Border>
+        </Grid>
 
-                <!-- Botões -->
-                <StackPanel Grid.Row="2"
-                            Orientation="Horizontal">
-
-                    <Button Width="110"
-                            Height="32"
-                            Content="Marcar todas"
-                            Command="{Binding SelectAllCommand}" />
-
-                    <Button Width="120"
-                            Height="32"
-                            Margin="8,0,0,0"
-                            Content="Limpar"
-                            Command="{Binding ClearSelectionCommand}" />
-
-                    <Button Width="140"
-                            Height="32"
-                            Margin="8,0,0,0"
-                            Content="Abrir selecionadas"
-                            Command="{Binding OpenSelectedCommand}" />
-
-                    <Button Width="110"
-                            Height="32"
-                            Margin="8,0,0,0"
-                            Content="Abrir todas"
-                            Command="{Binding OpenAllCommand}" />
-                </StackPanel>
-
-                <!-- Conteúdo -->
-                <Grid Grid.Row="4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="1*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Lista de contas -->
-                    <ListBox Grid.Column="0"
-                             ItemsSource="{Binding Accounts}"
-                             BorderThickness="1"
-                             HorizontalContentAlignment="Stretch"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto">
-
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Margin="6"
-                                        Padding="8"
-                                        BorderBrush="#E4E4E4"
-                                        BorderThickness="1"
-                                        CornerRadius="8">
-
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="28"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="110"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <CheckBox Grid.Column="0"
-                                                  VerticalAlignment="Top"
-                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}" />
-
-                                        <StackPanel Grid.Column="1">
-
-                                            <TextBlock Text="{Binding DisplayName}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"/>
-
-                                            <TextBlock Text="{Binding Code}"
-                                                       FontSize="12"
-                                                       Opacity="0.85"/>
-
-                                            <TextBlock Text="{Binding InstanceFolderPath}"
-                                                       FontSize="11"
-                                                       Opacity="0.70"
-                                                       TextWrapping="Wrap"/>
-
-                                            <TextBlock Text="{Binding LastLaunchText, StringFormat=Última abertura: {0}}"
-                                                       Margin="0,4,0,0"
-                                                       FontSize="10"
-                                                       Opacity="0.60"/>
-                                        </StackPanel>
-
-                                        <Border Grid.Column="2"
-                                                Padding="6"
-                                                Background="#F3F3F3"
-                                                CornerRadius="6"
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Status}"
-                                                       FontSize="11"/>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <!-- Painel lateral -->
-                    <Border Grid.Column="2"
-                            Padding="12"
-                            Background="#FAFAFA"
-                            CornerRadius="8">
-
-                        <StackPanel>
-                            <TextBlock Text="Fluxo"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"/>
-
-                            <TextBlock Margin="0,6,0,0"
-                                       FontSize="11"
-                                       TextWrapping="Wrap"
-                                       Text="1. Restaura tokens&#10;2. Renomeia&#10;3. Abre instância&#10;4. Próxima conta" />
-
-                            <Separator Margin="0,10,0,10"/>
-
-                            <TextBlock Text="Status geral"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"/>
-
-                            <TextBlock Margin="0,6,0,0"
-                                       FontSize="11"
-                                       Text="{Binding Status}"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Grid>
+        <Border Grid.Row="6"
+                Padding="12"
+                Background="#EEF2FF"
+                BorderBrush="#C7D2FE"
+                BorderThickness="1"
+                CornerRadius="10">
+            <TextBlock Text="{Binding Status}"
+                       TextWrapping="Wrap" />
         </Border>
     </Grid>
 </Window>
