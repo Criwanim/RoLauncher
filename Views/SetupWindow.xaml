@@ -90,21 +90,6 @@
                             Content="Selecionar"
                             Command="{Binding BrowseAppDataPcPathCommand}" />
                 </Grid>
-
-                <Grid Grid.Row="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="220" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="170" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock VerticalAlignment="Center" Text="Raiz das instâncias clonadas" />
-                    <TextBox Grid.Column="1"
-                             Margin="12,0"
-                             Text="{Binding InstancesRootPath, UpdateSourceTrigger=PropertyChanged}" />
-                    <Button Grid.Column="2"
-                            Content="Selecionar"
-                            Command="{Binding BrowseInstancesRootPathCommand}" />
-                </Grid>
             </Grid>
         </Border>
 

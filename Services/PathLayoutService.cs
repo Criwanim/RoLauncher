@@ -10,7 +10,6 @@ public static class PathLayoutService
         settings.GameInstallPath = Normalize(settings.GameInstallPath);
         settings.AppDataBasePath = Normalize(settings.AppDataBasePath);
         settings.AppDataPcPath = Normalize(settings.AppDataPcPath);
-        settings.InstancesRootPath = Normalize(settings.InstancesRootPath);
 
         if (string.IsNullOrWhiteSpace(settings.AppDataPcPath) && !string.IsNullOrWhiteSpace(settings.AppDataBasePath))
         {
@@ -20,11 +19,6 @@ public static class PathLayoutService
         if (string.IsNullOrWhiteSpace(settings.AppDataBasePath) && !string.IsNullOrWhiteSpace(settings.AppDataPcPath))
         {
             settings.AppDataBasePath = TryDeriveBasePath(settings.AppDataPcPath);
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.InstancesRootPath) && !string.IsNullOrWhiteSpace(settings.GameInstallPath))
-        {
-            settings.InstancesRootPath = ResolveDefaultInstancesRoot(settings.GameInstallPath);
         }
     }
 
@@ -50,19 +44,6 @@ public static class PathLayoutService
         }
 
         throw new InvalidOperationException("Informe a pasta raiz das instâncias clonadas.");
-    }
-
-    public static string ResolveDefaultInstancesRoot(string gameInstallPath)
-    {
-        var normalized = Normalize(gameInstallPath);
-        var parent = Directory.GetParent(normalized)?.FullName;
-
-        if (string.IsNullOrWhiteSpace(parent))
-        {
-            throw new InvalidOperationException("Não foi possível resolver a pasta raiz das instâncias.");
-        }
-
-        return Path.Combine(parent, "Instances");
     }
 
     public static string TryDeriveBasePath(string appDataPcPath)
