@@ -180,11 +180,19 @@ public partial class SetupViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanCreateConfiguration))]
     private void NewConfiguration()
     {
+        CreateConfigurationWithAlias(null);
+    }
+
+    public void CreateConfigurationWithAlias(string? alias)
+    {
         try
         {
             ApplyScreenValuesToSettings();
 
             var account = _environmentService.CreateEnvironment(_settings);
+            account.DisplayName = string.IsNullOrWhiteSpace(alias)
+                ? account.Code
+                : alias.Trim();
             account.ShortcutPath = _shortcutService.CreateDesktopShortcut(account);
 
             _settings.Accounts.Add(account);

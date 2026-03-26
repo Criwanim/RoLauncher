@@ -5,41 +5,72 @@ namespace RoLauncher.Services;
 
 public sealed class TokenService
 {
+    private static readonly string[] RootRuntimeFiles = [".userdata"];
+    private static readonly string[] PcRuntimeFiles = ["access_token_v2", "user_v2"];
+
     public void Capture(AppSettings settings, AccountProfile account)
     {
-        var runtimeDataPath = PathLayoutService.ResolveRuntimeDataPath(settings);
-        EnsureRules(settings);
-        EnsureDirectoryExists(runtimeDataPath, "A pasta AppData LocalLow\\XD\\PC não foi encontrada.");
+        var runtimeRootPath = PathLayoutService.ResolveRuntimeRootPath(settings);
+        var runtimePcPath = PathLayoutService.ResolveRuntimeDataPath(settings);
+
+        EnsureDirectoryExists(runtimeRootPath, "A pasta de runtime do LocalLow não foi encontrada.");
+        EnsureDirectoryExists(runtimePcPath, "A pasta AppData LocalLow do jogo não foi encontrada.");
+
         Directory.CreateDirectory(account.BackupTokenFolderPath);
 
-        foreach (var rule in settings.TokenRules)
+        foreach (var fileName in RootRuntimeFiles)
         {
-            var source = Path.Combine(runtimeDataPath, rule.RuntimeFileName);
-            var target = Path.Combine(account.BackupTokenFolderPath, rule.BackupFileName);
+            var source = Path.Combine(runtimeRootPath, fileName);
+            var target = Path.Combine(account.BackupTokenFolderPath, BuildBackupFileName(fileName, account.SlotNumber));
+            CopyFile(source, target, "Arquivo de sessão não encontrado");
+        }
+
+        foreach (var fileName in PcRuntimeFiles)
+        {
+            var source = Path.Combine(runtimePcPath, fileName);
+            var target = Path.Combine(account.BackupTokenFolderPath, BuildBackupFileName(fileName, account.SlotNumber));
             CopyFile(source, target, "Arquivo de sessão não encontrado");
         }
     }
 
     public void Restore(AppSettings settings, AccountProfile account)
     {
-        var runtimeDataPath = PathLayoutService.ResolveRuntimeDataPath(settings);
-        EnsureRules(settings);
-        EnsureDirectoryExists(runtimeDataPath, "A pasta AppData LocalLow\\XD\\PC não foi encontrada.");
+        var runtimeRootPath = PathLayoutService.ResolveRuntimeRootPath(settings);
+        var runtimePcPath = PathLayoutService.ResolveRuntimeDataPath(settings);
 
-        foreach (var rule in settings.TokenRules)
+        EnsureDirectoryExists(runtimeRootPath, "A pasta de runtime do LocalLow não foi encontrada.");
+        EnsureDirectoryExists(runtimePcPath, "A pasta AppData LocalLow do jogo não foi encontrada.");
+
+        foreach (var fileName in RootRuntimeFiles)
         {
-            var source = Path.Combine(account.BackupTokenFolderPath, rule.BackupFileName);
-            var target = Path.Combine(runtimeDataPath, rule.RuntimeFileName);
+            var source = ResolveBackupSource(account, fileName);
+            var target = Path.Combine(runtimeRootPath, fileName);
+            CopyFile(source, target, "Backup do token não encontrado");
+        }
+
+        foreach (var fileName in PcRuntimeFiles)
+        {
+            var source = ResolveBackupSource(account, fileName);
+            var target = Path.Combine(runtimePcPath, fileName);
             CopyFile(source, target, "Backup do token não encontrado");
         }
     }
 
-    private static void EnsureRules(AppSettings settings)
+    private static string ResolveBackupSource(AccountProfile account, string fileName)
     {
-        if (settings.TokenRules.Count == 0)
+        var preferred = Path.Combine(account.BackupTokenFolderPath, BuildBackupFileName(fileName, account.SlotNumber));
+        if (File.Exists(preferred))
         {
-            throw new InvalidOperationException("Defina os arquivos de sessão em TokenRules no settings.json.");
+            return preferred;
         }
+
+        var legacy = Path.Combine(account.BackupTokenFolderPath, fileName);
+        return legacy;
+    }
+
+    private static string BuildBackupFileName(string originalFileName, int slotNumber)
+    {
+        return $"{originalFileName}_{slotNumber}";
     }
 
     private static void EnsureDirectoryExists(string path, string message)

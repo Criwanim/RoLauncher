@@ -46,6 +46,7 @@ public sealed class SettingsService
 
         PathLayoutService.NormalizeSettings(settings);
         NormalizeAccounts(settings.Accounts);
+        RemoveMissingAccounts(settings);
         return settings;
     }
 
@@ -54,6 +55,7 @@ public sealed class SettingsService
         Directory.CreateDirectory(BaseFolder);
         PathLayoutService.NormalizeSettings(settings);
         NormalizeAccounts(settings.Accounts);
+        RemoveMissingAccounts(settings);
 
         var json = JsonSerializer.Serialize(settings, _options);
         File.WriteAllText(SettingsFile, json);
@@ -77,6 +79,33 @@ public sealed class SettingsService
             account.ShortcutPath ??= string.Empty;
             account.BackupTokenFolderPath ??= string.Empty;
         }
+    }
+
+    private static void RemoveMissingAccounts(AppSettings settings)
+    {
+        if (settings.Accounts.Count == 0 || string.IsNullOrWhiteSpace(settings.GameInstallPath) || !Directory.Exists(settings.GameInstallPath))
+        {
+            return;
+        }
+
+        settings.Accounts = settings.Accounts
+            .Where(account => AccountStillExists(settings.GameInstallPath, account))
+            .OrderBy(account => account.SlotNumber)
+            .ToList();
+    }
+
+    private static bool AccountStillExists(string gameInstallPath, AccountProfile account)
+    {
+        if (account.SlotNumber <= 0)
+        {
+            return false;
+        }
+
+        var code = string.IsNullOrWhiteSpace(account.Code) ? $"ro_win{account.SlotNumber}" : account.Code;
+        var executablePath = Path.Combine(gameInstallPath, $"{code}.exe");
+        var dataPath = Path.Combine(gameInstallPath, $"{code}_Data");
+
+        return File.Exists(executablePath) || Directory.Exists(dataPath);
     }
 
     private sealed class PersistedSettings

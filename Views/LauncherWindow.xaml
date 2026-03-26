@@ -121,7 +121,7 @@
 
                     <TextBlock Margin="0,12,0,0"
                                TextWrapping="Wrap"
-                               Text="1. Restaura os arquivos definidos em TokenRules para a pasta AppData LocalLow\XD\PC.&#10;2. Abre o executável da instância da conta.&#10;3. Aguarda a inicialização básica do processo.&#10;4. Atualiza o último horário de abertura no settings.json." />
+                               Text="1. Restaura .userdata na pasta raiz do LocalLow do jogo.&#10;2. Restaura access_token_v2 e user_v2 na pasta XD\PC.&#10;3. Abre o executável da instância da conta.&#10;4. Aguarda a inicialização básica do processo.&#10;5. Atualiza o último horário de abertura no settings.json." />
 
                     <Separator Margin="0,16,0,16" />
 
@@ -129,7 +129,7 @@
                                FontWeight="SemiBold" />
                     <TextBlock Margin="0,8,0,0"
                                TextWrapping="Wrap"
-                               Text="Se a restauração falhar, revise TokenRules no settings.json e confirme se AppData LocalLow\XD\PC está correto." />
+                               Text="Se a restauração falhar, confirme se .userdata, access_token_v2 e user_v2 foram capturados após o login da conta." />
                 </StackPanel>
             </Border>
         </Grid>

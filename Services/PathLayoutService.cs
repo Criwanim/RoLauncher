@@ -5,6 +5,9 @@ namespace RoLauncher.Services;
 
 public static class PathLayoutService
 {
+    private const string VendorFolderName = "X_D_Network Inc_";
+    private const string GameFolderName = "Ragnarok M_Classic Global";
+
     public static void NormalizeSettings(AppSettings settings)
     {
         settings.GameInstallPath = Normalize(settings.GameInstallPath);
@@ -13,7 +16,7 @@ public static class PathLayoutService
 
         if (string.IsNullOrWhiteSpace(settings.AppDataPcPath) && !string.IsNullOrWhiteSpace(settings.AppDataBasePath))
         {
-            settings.AppDataPcPath = Path.Combine(settings.AppDataBasePath, "XD", "PC");
+            settings.AppDataPcPath = Path.Combine(settings.AppDataBasePath, VendorFolderName, GameFolderName, "XD", "PC");
         }
 
         if (string.IsNullOrWhiteSpace(settings.AppDataBasePath) && !string.IsNullOrWhiteSpace(settings.AppDataPcPath))
@@ -31,7 +34,24 @@ public static class PathLayoutService
             return settings.AppDataPcPath;
         }
 
-        throw new InvalidOperationException("Informe a pasta AppData LocalLow\\XD\\PC.");
+        throw new InvalidOperationException($"Informe a pasta AppData LocalLow\\{VendorFolderName}\\{GameFolderName}\\XD\\PC.");
+    }
+
+    public static string ResolveRuntimeRootPath(AppSettings settings)
+    {
+        NormalizeSettings(settings);
+
+        if (!string.IsNullOrWhiteSpace(settings.AppDataBasePath))
+        {
+            return Path.Combine(settings.AppDataBasePath, VendorFolderName, GameFolderName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.AppDataPcPath))
+        {
+            return TryDeriveRuntimeRootFromPcPath(settings.AppDataPcPath);
+        }
+
+        throw new InvalidOperationException($"Informe a pasta AppData LocalLow\\{VendorFolderName}\\{GameFolderName}.");
     }
 
     public static string ResolveInstancesRoot(AppSettings settings)
@@ -53,12 +73,29 @@ public static class PathLayoutService
 
         if (current.Name.Equals("PC", StringComparison.OrdinalIgnoreCase) &&
             current.Parent?.Name.Equals("XD", StringComparison.OrdinalIgnoreCase) == true &&
+            current.Parent.Parent?.Name.Equals(GameFolderName, StringComparison.OrdinalIgnoreCase) == true &&
+            current.Parent.Parent.Parent?.Name.Equals(VendorFolderName, StringComparison.OrdinalIgnoreCase) == true &&
+            current.Parent.Parent.Parent.Parent is not null)
+        {
+            return current.Parent.Parent.Parent.Parent.FullName;
+        }
+
+        return current.Parent?.FullName ?? normalized;
+    }
+
+    private static string TryDeriveRuntimeRootFromPcPath(string appDataPcPath)
+    {
+        var normalized = Normalize(appDataPcPath);
+        var current = new DirectoryInfo(normalized);
+
+        if (current.Name.Equals("PC", StringComparison.OrdinalIgnoreCase) &&
+            current.Parent?.Name.Equals("XD", StringComparison.OrdinalIgnoreCase) == true &&
             current.Parent.Parent is not null)
         {
             return current.Parent.Parent.FullName;
         }
 
-        return current.Parent?.FullName ?? normalized;
+        return normalized;
     }
 
     private static string Normalize(string? path)

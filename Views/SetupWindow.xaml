@@ -104,7 +104,7 @@
                 <Button Content="Salvar caminhos"
                         Command="{Binding SavePathsCommand}" />
                 <Button Content="Nova configuração"
-                        Command="{Binding NewConfigurationCommand}" />
+                        Click="NewConfiguration_Click" />
                 <Button Content="Capturar tokens"
                         Command="{Binding CaptureTokensCommand}" />
             </StackPanel>

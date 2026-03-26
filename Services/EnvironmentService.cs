@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using RoLauncher.Models;
@@ -7,7 +8,7 @@ namespace RoLauncher.Services;
 
 public class EnvironmentService
 {
-    public AccountProfile CreateEnvironment(AppSettings settings)
+    public AccountProfile CreateEnvironment(AppSettings settings, string? alias = null)
     {
         if (string.IsNullOrWhiteSpace(settings.GameInstallPath))
         {
@@ -21,7 +22,7 @@ public class EnvironmentService
 
         if (string.IsNullOrWhiteSpace(settings.AppDataPcPath))
         {
-            throw new InvalidOperationException("A pasta AppData LocalLow\\XD\\PC não foi informada.");
+            throw new InvalidOperationException("A pasta AppData LocalLow do jogo não foi informada.");
         }
 
         var gameFolder = settings.GameInstallPath;
@@ -39,18 +40,23 @@ public class EnvironmentService
             CreateClonedInstance(gameFolder, nextSlot);
         }
 
-        var instanceFolderPath = gameFolder;
-        var executablePath = Path.Combine(gameFolder, $"ro_win{nextSlot}.exe");
-        var backupTokenFolderPath = Path.Combine(settings.AppDataPcPath, code);
+        var executablePath = Path.Combine(gameFolder, $"{code}.exe");
+        var backupTokenFolderPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "RoLauncher",
+            "Tokens",
+            code);
 
         Directory.CreateDirectory(backupTokenFolderPath);
+
+        var normalizedAlias = string.IsNullOrWhiteSpace(alias) ? code : alias.Trim();
 
         return new AccountProfile
         {
             SlotNumber = nextSlot,
             Code = code,
-            DisplayName = code,
-            InstanceFolderPath = instanceFolderPath,
+            DisplayName = normalizedAlias,
+            InstanceFolderPath = gameFolder,
             ExecutablePath = executablePath,
             BackupTokenFolderPath = backupTokenFolderPath,
             CreatedAt = DateTime.Now
@@ -59,12 +65,56 @@ public class EnvironmentService
 
     private static int GetNextSlot(AppSettings settings)
     {
-        if (settings.Accounts is null || settings.Accounts.Count == 0)
+        var occupiedSlots = GetOccupiedSlots(settings.GameInstallPath);
+        var nextSlot = 1;
+
+        while (occupiedSlots.Contains(nextSlot))
         {
-            return 1;
+            nextSlot++;
         }
 
-        return settings.Accounts.Max(x => x.SlotNumber) + 1;
+        return nextSlot;
+    }
+
+    private static HashSet<int> GetOccupiedSlots(string gameFolder)
+    {
+        var occupiedSlots = new HashSet<int>();
+
+        if (!Directory.Exists(gameFolder))
+        {
+            return occupiedSlots;
+        }
+
+        foreach (var executablePath in Directory.EnumerateFiles(gameFolder, "ro_win*.exe", SearchOption.TopDirectoryOnly))
+        {
+            if (TryParseSlot(Path.GetFileNameWithoutExtension(executablePath), out var slot))
+            {
+                occupiedSlots.Add(slot);
+            }
+        }
+
+        foreach (var dataDirectoryPath in Directory.EnumerateDirectories(gameFolder, "ro_win*_Data", SearchOption.TopDirectoryOnly))
+        {
+            var directoryName = Path.GetFileName(dataDirectoryPath);
+            if (directoryName.EndsWith("_Data", StringComparison.OrdinalIgnoreCase) &&
+                TryParseSlot(directoryName[..^5], out var slot))
+            {
+                occupiedSlots.Add(slot);
+            }
+        }
+
+        return occupiedSlots;
+    }
+
+    private static bool TryParseSlot(string code, out int slot)
+    {
+        slot = 0;
+        if (!code.StartsWith("ro_win", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return int.TryParse(code[6..], out slot) && slot > 0;
     }
 
     private static void EnsureBaseInstanceExists(string gameFolder)
