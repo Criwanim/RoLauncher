@@ -6,8 +6,8 @@ namespace RoLauncher.Services;
 
 public static class PathLayoutService
 {
-    private const string VendorFolderName = "X_D_Network Inc_";
-    private const string GameFolderName = "Ragnarok M_Classic Global";
+    private const string VendorFolderName = "X_D_ Network Inc_";
+    private const string GameFolderName = "Ragnarok M_ Classic Global";
 
     public static void NormalizeSettings(AppSettings settings)
     {

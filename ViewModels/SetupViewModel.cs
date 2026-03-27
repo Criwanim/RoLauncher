@@ -18,6 +18,7 @@ public partial class SetupViewModel : ObservableObject
     private readonly ShortcutService _shortcutService;
     private readonly TokenService _tokenService;
     private readonly GameLaunchService _gameLaunchService;
+    private readonly AccountRemovalService _accountRemovalService;
     private AppSettings _settings;
 
     public SetupViewModel()
@@ -26,7 +27,8 @@ public partial class SetupViewModel : ObservableObject
             new EnvironmentService(),
             new ShortcutService(),
             new TokenService(),
-            new GameLaunchService())
+            new GameLaunchService(),
+            new AccountRemovalService())
     {
     }
 
@@ -35,13 +37,15 @@ public partial class SetupViewModel : ObservableObject
         EnvironmentService environmentService,
         ShortcutService shortcutService,
         TokenService tokenService,
-        GameLaunchService gameLaunchService)
+        GameLaunchService gameLaunchService,
+        AccountRemovalService accountRemovalService)
     {
         _settingsService = settingsService;
         _environmentService = environmentService;
         _shortcutService = shortcutService;
         _tokenService = tokenService;
         _gameLaunchService = gameLaunchService;
+        _accountRemovalService = accountRemovalService;
 
         _settings = _settingsService.Load();
         PathLayoutService.NormalizeSettings(_settings);
@@ -79,6 +83,7 @@ public partial class SetupViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NewConfigurationCommand))]
     [NotifyCanExecuteChangedFor(nameof(CaptureTokensCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteSelectedAccountCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -88,10 +93,14 @@ public partial class SetupViewModel : ObservableObject
     private string progressMessage = string.Empty;
 
     [ObservableProperty]
+    private bool isCopyProgressVisible;
+
+    [ObservableProperty]
     private string status = "Pronto";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CaptureTokensCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteSelectedAccountCommand))]
     private AccountProfile? selectedAccount;
 
     [RelayCommand]
@@ -198,15 +207,30 @@ public partial class SetupViewModel : ObservableObject
         {
             IsBusy = true;
             ProgressValue = 0;
-            ProgressMessage = "Preparando configuração...";
+            ProgressMessage = string.Empty;
+            IsCopyProgressVisible = false;
             Status = "Criando nova configuração...";
 
             ApplyScreenValuesToSettings();
 
             var progress = new Progress<EnvironmentProgress>(p =>
             {
-                ProgressValue = p.Percentage;
-                ProgressMessage = p.Message;
+                var isCopying = !string.IsNullOrWhiteSpace(p.Message) &&
+                                p.Message.StartsWith("Copiando arquivos", StringComparison.OrdinalIgnoreCase);
+
+                IsCopyProgressVisible = isCopying;
+
+                if (isCopying)
+                {
+                    ProgressValue = p.Percentage;
+                    ProgressMessage = p.Message;
+                }
+                else
+                {
+                    ProgressValue = 0;
+                    ProgressMessage = string.Empty;
+                }
+
                 Status = p.Message;
             });
 
@@ -221,20 +245,24 @@ public partial class SetupViewModel : ObservableObject
             SelectedAccount = Accounts.FirstOrDefault(a => a.SlotNumber == account.SlotNumber);
             _gameLaunchService.Start(account.ExecutablePath);
 
-            ProgressValue = 100;
-            ProgressMessage = "Configuração criada com sucesso.";
+            IsCopyProgressVisible = false;
+            ProgressValue = 0;
+            ProgressMessage = string.Empty;
             Status = $"{account.DisplayName} ({account.Code}) criado. Faça login no jogo e depois clique em 'Capturar tokens'.";
         }
         catch (Exception ex)
         {
+            IsCopyProgressVisible = false;
+            ProgressValue = 0;
+            ProgressMessage = string.Empty;
             Status = $"Erro ao criar configuração: {ex.Message}";
-            ProgressMessage = "Falha ao criar configuração.";
         }
         finally
         {
             IsBusy = false;
             NewConfigurationCommand.NotifyCanExecuteChanged();
             CaptureTokensCommand.NotifyCanExecuteChanged();
+            DeleteSelectedAccountCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -262,10 +290,53 @@ public partial class SetupViewModel : ObservableObject
                !string.IsNullOrWhiteSpace(AppDataBasePath);
     }
 
+    [RelayCommand(CanExecute = nameof(CanDeleteSelectedAccount))]
+    private void DeleteSelectedAccount()
+    {
+        if (SelectedAccount is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ApplyScreenValuesToSettings();
+
+            var accountToDelete = SelectedAccount;
+            var removedDisplayName = accountToDelete.DisplayName;
+            var removedCode = accountToDelete.Code;
+
+            _accountRemovalService.DeleteAccount(_settings, accountToDelete);
+            _settingsService.Save(_settings);
+            ReloadAccounts();
+
+            SelectedAccount = Accounts.FirstOrDefault();
+            Status = $"Conta {removedDisplayName} ({removedCode}) removida com sucesso.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Erro ao deletar conta: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+            DeleteSelectedAccountCommand.NotifyCanExecuteChanged();
+            CaptureTokensCommand.NotifyCanExecuteChanged();
+            NewConfigurationCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private bool CanDeleteSelectedAccount()
+    {
+        return !IsBusy && SelectedAccount is not null;
+    }
+
     partial void OnIsBusyChanged(bool value)
     {
         NewConfigurationCommand.NotifyCanExecuteChanged();
         CaptureTokensCommand.NotifyCanExecuteChanged();
+        DeleteSelectedAccountCommand.NotifyCanExecuteChanged();
     }
 
     private void ApplyScreenValuesToSettings()

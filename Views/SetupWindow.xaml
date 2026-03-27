@@ -9,6 +9,55 @@
         Height="720"
         WindowStartupLocation="CenterOwner">
     <Grid Margin="20">
+        <Grid.Resources>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+            <Style x:Key="ModernDataGridStyle" TargetType="DataGrid">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+                <Setter Property="HeadersVisibility" Value="Column"/>
+                <Setter Property="RowBackground" Value="#00FFFFFF"/>
+                <Setter Property="AlternatingRowBackground" Value="#08FFFFFF"/>
+                <Setter Property="HorizontalGridLinesBrush" Value="#14000000"/>
+                <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
+                <Setter Property="CanUserResizeRows" Value="False"/>
+                <Setter Property="RowHeight" Value="50"/>
+            </Style>
+
+            <Style x:Key="ModernDataGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#F4F6FA"/>
+                <Setter Property="Foreground" Value="#22304A"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Padding" Value="12,10"/>
+                <Setter Property="BorderBrush" Value="#00000000"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+
+            <Style x:Key="ModernDataGridCellStyle" TargetType="DataGridCell">
+                <Setter Property="Padding" Value="12,8"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            </Style>
+
+            <Style TargetType="DataGridRow">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="SnapsToDevicePixels" Value="True"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#0F4F7CFF"/>
+                    </Trigger>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="#164F7CFF"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -25,9 +74,10 @@
         <Border Grid.Row="1"
                 Margin="0,18,0,0"
                 Padding="16"
-                BorderBrush="#33000000"
+                Background="#FCFCFD"
+                BorderBrush="#22000000"
                 BorderThickness="1"
-                CornerRadius="10">
+                CornerRadius="14">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -72,31 +122,15 @@
                         Height="34"
                         Content="Buscar"
                         Command="{Binding BrowseAppDataBasePathCommand}"/>
-
-                <TextBlock Grid.Row="2"
-                           Grid.Column="0"
-                           Margin="0,16,10,0"
-                           Text="XD\\PC:"
-                           VerticalAlignment="Center"/>
-                <TextBox Grid.Row="2"
-                         Grid.Column="1"
-                         Margin="0,16,0,0"
-                         Height="34"
-                         Text="{Binding AppDataPcPath, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Grid.Row="2"
-                        Grid.Column="2"
-                        Margin="10,16,0,0"
-                        Height="34"
-                        Content="Buscar"
-                        Command="{Binding BrowseAppDataPcPathCommand}"/>
             </Grid>
         </Border>
 
         <StackPanel Grid.Row="2"
-                    Margin="0,16,0,0"
+                    Margin="0,16,0,16"
                     Orientation="Horizontal">
             <Button Width="150"
                     Height="36"
+                    Margin="12,0,0,0"
                     Content="Salvar caminhos"
                     Command="{Binding SavePathsCommand}"/>
             <Button Width="170"
@@ -109,17 +143,25 @@
                     Margin="12,0,0,0"
                     Content="Capturar tokens"
                     Command="{Binding CaptureTokensCommand}"/>
+            <Button Width="150"
+                    Height="36"
+                    Margin="12,0,0,0"
+                    Content="Deletar conta"
+                    Click="DeleteSelectedAccount_Click"/>
         </StackPanel>
 
         <Border Grid.Row="3"
                 Margin="0,16,0,0"
                 Padding="14"
-                BorderBrush="#33000000"
+                Background="#F8FAFD"
+                BorderBrush="#22000000"
                 BorderThickness="1"
-                CornerRadius="10">
+                CornerRadius="14"
+                Visibility="{Binding IsCopyProgressVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel>
-                <TextBlock Text="Progresso"
-                           FontWeight="SemiBold"/>
+                <TextBlock Text="Copiando arquivos"
+                           FontWeight="SemiBold"
+                           FontSize="15"/>
                 <ProgressBar Margin="0,10,0,0"
                              Height="18"
                              Minimum="0"
@@ -132,33 +174,52 @@
 
         <Border Grid.Row="4"
                 Margin="0,16,0,0"
-                Padding="14"
-                BorderBrush="#33000000"
+                Padding="16"
+                Background="#FCFCFD"
+                BorderBrush="#22000000"
                 BorderThickness="1"
-                CornerRadius="10">
+                CornerRadius="14">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Contas configuradas"
-                           FontSize="18"
-                           FontWeight="SemiBold"/>
+                <DockPanel>
+                    <TextBlock Text="Contas configuradas"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <Border DockPanel.Dock="Right"
+                            Padding="10,4"
+                            Background="#EEF3FF"
+                            CornerRadius="10">
+                        <TextBlock Text="{Binding Accounts.Count, StringFormat={}{0} conta(s)}"
+                                   FontWeight="SemiBold"/>
+                    </Border>
+                </DockPanel>
 
                 <DataGrid Grid.Row="1"
-                          Margin="0,12,0,0"
+                          Margin="0,14,0,0"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
                           IsReadOnly="True"
                           ItemsSource="{Binding Accounts}"
-                          SelectedItem="{Binding SelectedAccount, Mode=TwoWay}">
+                          SelectedItem="{Binding SelectedAccount, Mode=TwoWay}"
+                          Style="{StaticResource ModernDataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeaderStyle}"
+                          CellStyle="{StaticResource ModernDataGridCellStyle}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Slot" Binding="{Binding SlotNumber}" Width="80"/>
-                        <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="140"/>
-                        <DataGridTextColumn Header="Alias" Binding="{Binding DisplayName}" Width="180"/>
-                        <DataGridTextColumn Header="Executável" Binding="{Binding ExecutablePath}" Width="*"/>
+                        <DataGridTextColumn Header="Alias"
+                                            Binding="{Binding DisplayName}"
+                                            Width="200"/>
+                        <DataGridTextColumn Header="Executável"
+                                            Binding="{Binding ExecutablePath}"
+                                            Width="*"/>
+                        <DataGridTextColumn Header="Criado em"
+                                            Binding="{Binding CreatedAt, StringFormat=dd/MM/yyyy HH:mm}"
+                                            Width="150"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
