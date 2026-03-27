@@ -2,43 +2,51 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using RoLauncher.Models;
 
 namespace RoLauncher.Services;
 
-public class EnvironmentService
+public sealed class EnvironmentService
 {
     public AccountProfile CreateEnvironment(AppSettings settings, string? alias = null)
     {
-        if (string.IsNullOrWhiteSpace(settings.GameInstallPath))
-        {
-            throw new InvalidOperationException("A pasta de instalação do jogo não foi informada.");
-        }
+        return CreateEnvironmentAsync(settings, progress: null, alias, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
+    }
 
-        if (!Directory.Exists(settings.GameInstallPath))
-        {
-            throw new DirectoryNotFoundException("A pasta de instalação do jogo não foi encontrada.");
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.AppDataPcPath))
-        {
-            throw new InvalidOperationException("A pasta AppData LocalLow do jogo não foi informada.");
-        }
+    public async Task<AccountProfile> CreateEnvironmentAsync(
+        AppSettings settings,
+        IProgress<EnvironmentProgress>? progress = null,
+        string? alias = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateSettings(settings);
 
         var gameFolder = settings.GameInstallPath;
-        var nextSlot = GetNextSlot(settings);
+        var nextSlot = GetNextSlot(gameFolder);
         var code = $"ro_win{nextSlot}";
 
+        Report(progress, 5, "Validando arquivos base...");
         EnsureBaseInstanceExists(gameFolder);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (nextSlot == 1)
         {
-            PrepareFirstInstance(gameFolder);
+            Report(progress, 20, "Renomeando instância base para ro_win1...");
+            await Task.Run(() => PrepareFirstInstance(gameFolder), cancellationToken);
         }
         else
         {
-            CreateClonedInstance(gameFolder, nextSlot);
+            Report(progress, 20, $"Copiando arquivos para {code}...");
+            await Task.Run(
+                () => CreateClonedInstance(gameFolder, nextSlot, progress, cancellationToken),
+                cancellationToken);
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var executablePath = Path.Combine(gameFolder, $"{code}.exe");
         var backupTokenFolderPath = Path.Combine(
@@ -48,6 +56,8 @@ public class EnvironmentService
             code);
 
         Directory.CreateDirectory(backupTokenFolderPath);
+
+        Report(progress, 95, "Finalizando configuração...");
 
         var normalizedAlias = string.IsNullOrWhiteSpace(alias) ? code : alias.Trim();
 
@@ -63,9 +73,32 @@ public class EnvironmentService
         };
     }
 
-    private static int GetNextSlot(AppSettings settings)
+    private static void ValidateSettings(AppSettings settings)
     {
-        var occupiedSlots = GetOccupiedSlots(settings.GameInstallPath);
+        if (string.IsNullOrWhiteSpace(settings.GameInstallPath))
+        {
+            throw new InvalidOperationException("A pasta de instalação do jogo não foi informada.");
+        }
+
+        if (!Directory.Exists(settings.GameInstallPath))
+        {
+            throw new DirectoryNotFoundException("A pasta de instalação do jogo não foi encontrada.");
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.AppDataBasePath))
+        {
+            throw new InvalidOperationException("A pasta base do AppData LocalLow não foi informada.");
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.AppDataPcPath))
+        {
+            throw new InvalidOperationException("A pasta AppData LocalLow do jogo não foi informada.");
+        }
+    }
+
+    private static int GetNextSlot(string gameFolder)
+    {
+        var occupiedSlots = GetOccupiedSlots(gameFolder);
         var nextSlot = 1;
 
         while (occupiedSlots.Contains(nextSlot))
@@ -109,6 +142,7 @@ public class EnvironmentService
     private static bool TryParseSlot(string code, out int slot)
     {
         slot = 0;
+
         if (!code.StartsWith("ro_win", StringComparison.OrdinalIgnoreCase))
         {
             return false;
@@ -121,7 +155,6 @@ public class EnvironmentService
     {
         var originalExe = Path.Combine(gameFolder, "ro_win.exe");
         var originalData = Path.Combine(gameFolder, "ro_win_Data");
-
         var firstExe = Path.Combine(gameFolder, "ro_win1.exe");
         var firstData = Path.Combine(gameFolder, "ro_win1_Data");
 
@@ -139,7 +172,6 @@ public class EnvironmentService
     {
         var originalExe = Path.Combine(gameFolder, "ro_win.exe");
         var originalData = Path.Combine(gameFolder, "ro_win_Data");
-
         var firstExe = Path.Combine(gameFolder, "ro_win1.exe");
         var firstData = Path.Combine(gameFolder, "ro_win1_Data");
 
@@ -162,11 +194,14 @@ public class EnvironmentService
         Directory.Move(originalData, firstData);
     }
 
-    private static void CreateClonedInstance(string gameFolder, int slot)
+    private static void CreateClonedInstance(
+        string gameFolder,
+        int slot,
+        IProgress<EnvironmentProgress>? progress,
+        CancellationToken cancellationToken)
     {
         var sourceExe = Path.Combine(gameFolder, "ro_win1.exe");
         var sourceData = Path.Combine(gameFolder, "ro_win1_Data");
-
         var targetExe = Path.Combine(gameFolder, $"ro_win{slot}.exe");
         var targetData = Path.Combine(gameFolder, $"ro_win{slot}_Data");
 
@@ -186,13 +221,43 @@ public class EnvironmentService
         }
 
         File.Copy(sourceExe, targetExe, overwrite: false);
-        CopyDirectory(sourceData, targetData);
+        Report(progress, 35, $"Executável ro_win{slot}.exe criado.");
+
+        var totalFiles = CountFiles(sourceData);
+        var copiedFiles = 0;
+
+        CopyDirectory(
+            sourceData,
+            targetData,
+            () =>
+            {
+                copiedFiles++;
+                var percent = totalFiles == 0
+                    ? 85
+                    : 35 + (int)Math.Round((copiedFiles / (double)totalFiles) * 50);
+
+                Report(progress, Math.Min(percent, 90), $"Copiando arquivos... {copiedFiles}/{totalFiles}");
+            },
+            cancellationToken);
     }
 
-    private static void CopyDirectory(string sourceDir, string targetDir)
+    private static int CountFiles(string sourceDir)
+    {
+        if (!Directory.Exists(sourceDir))
+        {
+            return 0;
+        }
+
+        return Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories).Count();
+    }
+
+    private static void CopyDirectory(
+        string sourceDir,
+        string targetDir,
+        Action onFileCopied,
+        CancellationToken cancellationToken)
     {
         var source = new DirectoryInfo(sourceDir);
-
         if (!source.Exists)
         {
             throw new DirectoryNotFoundException($"Diretório de origem não encontrado: {sourceDir}");
@@ -202,14 +267,26 @@ public class EnvironmentService
 
         foreach (var file in source.GetFiles())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var targetFilePath = Path.Combine(targetDir, file.Name);
             file.CopyTo(targetFilePath, overwrite: false);
+            onFileCopied();
         }
 
         foreach (var directory in source.GetDirectories())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var nextTargetSubDir = Path.Combine(targetDir, directory.Name);
-            CopyDirectory(directory.FullName, nextTargetSubDir);
+            CopyDirectory(directory.FullName, nextTargetSubDir, onFileCopied, cancellationToken);
         }
+    }
+
+    private static void Report(IProgress<EnvironmentProgress>? progress, int percentage, string message)
+    {
+        progress?.Report(new EnvironmentProgress
+        {
+            Percentage = percentage,
+            Message = message
+        });
     }
 }

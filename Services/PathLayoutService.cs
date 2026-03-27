@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using RoLauncher.Models;
 
@@ -16,13 +17,19 @@ public static class PathLayoutService
 
         if (string.IsNullOrWhiteSpace(settings.AppDataPcPath) && !string.IsNullOrWhiteSpace(settings.AppDataBasePath))
         {
-            settings.AppDataPcPath = Path.Combine(settings.AppDataBasePath, VendorFolderName, GameFolderName, "XD", "PC");
+            settings.AppDataPcPath = BuildPcRuntimePath(settings.AppDataBasePath);
         }
 
         if (string.IsNullOrWhiteSpace(settings.AppDataBasePath) && !string.IsNullOrWhiteSpace(settings.AppDataPcPath))
         {
             settings.AppDataBasePath = TryDeriveBasePath(settings.AppDataPcPath);
         }
+    }
+
+    public static string BuildPcRuntimePath(string appDataBasePath)
+    {
+        var normalizedBase = Normalize(appDataBasePath);
+        return Path.Combine(normalizedBase, VendorFolderName, GameFolderName, "XD", "PC");
     }
 
     public static string ResolveRuntimeDataPath(AppSettings settings)

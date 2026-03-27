@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bTvnEwhxNx4=",
+  "dgSpecHash": "eNABx6aZlOE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\criwanim.silva\\source\\repos\\RoLauncher\\RoLauncher\\RoLauncher.csproj",
+  "projectFilePath": "C:\\Users\\criwanim.silva\\source\\repos\\RoLauncher\\RoLauncher.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\criwanim.silva\\.nuget\\packages\\communitytoolkit.mvvm\\8.4.0\\communitytoolkit.mvvm.8.4.0.nupkg.sha512"
   ],

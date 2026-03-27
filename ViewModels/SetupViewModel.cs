@@ -45,7 +45,6 @@ public partial class SetupViewModel : ObservableObject
 
         _settings = _settingsService.Load();
         PathLayoutService.NormalizeSettings(_settings);
-
         TryAutoDetectPaths();
         PathLayoutService.NormalizeSettings(_settings);
 
@@ -151,7 +150,7 @@ public partial class SetupViewModel : ObservableObject
         var dialog = new OpenFolderDialog
         {
             Multiselect = false,
-            Title = "Selecione a pasta X_D_Network Inc_\\Ragnarok M_Classic Global\\XD\\PC"
+            Title = "Selecione a pasta XD\\PC do Ragnarok"
         };
 
         if (dialog.ShowDialog() == true)
@@ -182,10 +181,10 @@ public partial class SetupViewModel : ObservableObject
 
     public bool CanStartNewConfiguration()
     {
-        return !IsBusy
-            && !string.IsNullOrWhiteSpace(GameInstallPath)
-            && !string.IsNullOrWhiteSpace(AppDataBasePath)
-            && !string.IsNullOrWhiteSpace(AppDataPcPath);
+        return !IsBusy &&
+               !string.IsNullOrWhiteSpace(GameInstallPath) &&
+               !string.IsNullOrWhiteSpace(AppDataBasePath) &&
+               !string.IsNullOrWhiteSpace(AppDataPcPath);
     }
 
     public async Task CreateConfigurationWithAliasAsync(string? alias)
@@ -211,10 +210,8 @@ public partial class SetupViewModel : ObservableObject
                 Status = p.Message;
             });
 
-            var account = await _environmentService.CreateEnvironmentAsync(_settings, progress);
-            account.DisplayName = string.IsNullOrWhiteSpace(alias)
-                ? account.Code
-                : alias.Trim();
+            var account = await _environmentService.CreateEnvironmentAsync(_settings, progress, alias);
+
             account.ShortcutPath = _shortcutService.CreateDesktopShortcut(account);
 
             _settings.Accounts.Add(account);
@@ -226,7 +223,7 @@ public partial class SetupViewModel : ObservableObject
 
             ProgressValue = 100;
             ProgressMessage = "Configuração criada com sucesso.";
-            Status = $"{account.Code} criado. Faça login no jogo e depois clique em 'Capturar tokens'.";
+            Status = $"{account.DisplayName} ({account.Code}) criado. Faça login no jogo e depois clique em 'Capturar tokens'.";
         }
         catch (Exception ex)
         {
@@ -249,7 +246,7 @@ public partial class SetupViewModel : ObservableObject
             ApplyScreenValuesToSettings();
             _tokenService.Capture(_settings, SelectedAccount!);
             _settingsService.Save(_settings);
-            Status = $"Tokens da conta {SelectedAccount!.Code} capturados com sucesso.";
+            Status = $"Tokens da conta {SelectedAccount!.DisplayName} capturados com sucesso.";
         }
         catch (Exception ex)
         {
@@ -259,10 +256,10 @@ public partial class SetupViewModel : ObservableObject
 
     private bool CanCaptureTokens()
     {
-        return !IsBusy
-            && SelectedAccount is not null
-            && !string.IsNullOrWhiteSpace(AppDataPcPath)
-            && !string.IsNullOrWhiteSpace(AppDataBasePath);
+        return !IsBusy &&
+               SelectedAccount is not null &&
+               !string.IsNullOrWhiteSpace(AppDataPcPath) &&
+               !string.IsNullOrWhiteSpace(AppDataBasePath);
     }
 
     partial void OnIsBusyChanged(bool value)
@@ -289,6 +286,7 @@ public partial class SetupViewModel : ObservableObject
     private void ReloadAccounts()
     {
         Accounts.Clear();
+
         foreach (var account in _settings.Accounts.OrderBy(account => account.SlotNumber))
         {
             Accounts.Add(account);
@@ -307,6 +305,7 @@ public partial class SetupViewModel : ObservableObject
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var localLowPath = Path.GetFullPath(Path.Combine(localAppData, "..", "LocalLow"));
+
             if (Directory.Exists(localLowPath))
             {
                 _settings.AppDataBasePath = localLowPath;
