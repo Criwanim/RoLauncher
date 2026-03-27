@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -52,10 +53,7 @@ public partial class SetupViewModel : ObservableObject
         AppDataBasePath = _settings.AppDataBasePath;
         AppDataPcPath = _settings.AppDataPcPath;
 
-        foreach (var account in _settings.Accounts.OrderBy(account => account.SlotNumber))
-        {
-            Accounts.Add(account);
-        }
+        ReloadAccounts();
 
         Status = Accounts.Count == 0
             ? $"Pronto. Arquivo de configuração: {_settingsService.SettingsFilePath}"
@@ -80,6 +78,17 @@ public partial class SetupViewModel : ObservableObject
     private string appDataPcPath = string.Empty;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(NewConfigurationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CaptureTokensCommand))]
+    private bool isBusy;
+
+    [ObservableProperty]
+    private int progressValue;
+
+    [ObservableProperty]
+    private string progressMessage = string.Empty;
+
+    [ObservableProperty]
     private string status = "Pronto";
 
     [ObservableProperty]
@@ -91,8 +100,7 @@ public partial class SetupViewModel : ObservableObject
     {
         TryAutoDetectGameInstallPath();
 
-        if (!string.IsNullOrWhiteSpace(_settings.GameInstallPath) &&
-            Directory.Exists(_settings.GameInstallPath))
+        if (!string.IsNullOrWhiteSpace(_settings.GameInstallPath) && Directory.Exists(_settings.GameInstallPath))
         {
             GameInstallPath = _settings.GameInstallPath;
             Status = "Pasta do jogo localizada automaticamente.";
@@ -116,17 +124,10 @@ public partial class SetupViewModel : ObservableObject
     {
         TryAutoDetectAppDataPaths();
 
-        if (!string.IsNullOrWhiteSpace(_settings.AppDataBasePath) &&
-            Directory.Exists(_settings.AppDataBasePath))
+        if (!string.IsNullOrWhiteSpace(_settings.AppDataBasePath) && Directory.Exists(_settings.AppDataBasePath))
         {
             AppDataBasePath = _settings.AppDataBasePath;
-
-            if (string.IsNullOrWhiteSpace(AppDataPcPath) &&
-                !string.IsNullOrWhiteSpace(_settings.AppDataPcPath))
-            {
-                AppDataPcPath = _settings.AppDataPcPath;
-            }
-
+            AppDataPcPath = PathLayoutService.BuildPcRuntimePath(AppDataBasePath);
             Status = "Pasta base do AppData localizada automaticamente.";
             return;
         }
@@ -140,11 +141,7 @@ public partial class SetupViewModel : ObservableObject
         if (dialog.ShowDialog() == true)
         {
             AppDataBasePath = dialog.FolderName;
-
-            if (string.IsNullOrWhiteSpace(AppDataPcPath))
-            {
-                AppDataPcPath = Path.Combine(AppDataBasePath, "XD", "PC");
-            }
+            AppDataPcPath = PathLayoutService.BuildPcRuntimePath(AppDataBasePath);
         }
     }
 
@@ -154,7 +151,7 @@ public partial class SetupViewModel : ObservableObject
         var dialog = new OpenFolderDialog
         {
             Multiselect = false,
-            Title = "Selecione a pasta AppData LocalLow\\XD\\PC"
+            Title = "Selecione a pasta X_D_Network Inc_\\Ragnarok M_Classic Global\\XD\\PC"
         };
 
         if (dialog.ShowDialog() == true)
@@ -177,19 +174,44 @@ public partial class SetupViewModel : ObservableObject
         Status = "Caminhos salvos com sucesso.";
     }
 
-    [RelayCommand(CanExecute = nameof(CanCreateConfiguration))]
-    private void NewConfiguration()
+    [RelayCommand(CanExecute = nameof(CanStartNewConfiguration))]
+    private async Task NewConfiguration()
     {
-        CreateConfigurationWithAlias(null);
+        await CreateConfigurationWithAliasAsync(null);
     }
 
-    public void CreateConfigurationWithAlias(string? alias)
+    public bool CanStartNewConfiguration()
     {
+        return !IsBusy
+            && !string.IsNullOrWhiteSpace(GameInstallPath)
+            && !string.IsNullOrWhiteSpace(AppDataBasePath)
+            && !string.IsNullOrWhiteSpace(AppDataPcPath);
+    }
+
+    public async Task CreateConfigurationWithAliasAsync(string? alias)
+    {
+        if (!CanStartNewConfiguration())
+        {
+            return;
+        }
+
         try
         {
+            IsBusy = true;
+            ProgressValue = 0;
+            ProgressMessage = "Preparando configuração...";
+            Status = "Criando nova configuração...";
+
             ApplyScreenValuesToSettings();
 
-            var account = _environmentService.CreateEnvironment(_settings);
+            var progress = new Progress<EnvironmentProgress>(p =>
+            {
+                ProgressValue = p.Percentage;
+                ProgressMessage = p.Message;
+                Status = p.Message;
+            });
+
+            var account = await _environmentService.CreateEnvironmentAsync(_settings, progress);
             account.DisplayName = string.IsNullOrWhiteSpace(alias)
                 ? account.Code
                 : alias.Trim();
@@ -197,40 +219,56 @@ public partial class SetupViewModel : ObservableObject
 
             _settings.Accounts.Add(account);
             _settingsService.Save(_settings);
+            ReloadAccounts();
 
-            Accounts.Add(account);
-            SelectedAccount = account;
+            SelectedAccount = Accounts.FirstOrDefault(a => a.SlotNumber == account.SlotNumber);
             _gameLaunchService.Start(account.ExecutablePath);
 
+            ProgressValue = 100;
+            ProgressMessage = "Configuração criada com sucesso.";
             Status = $"{account.Code} criado. Faça login no jogo e depois clique em 'Capturar tokens'.";
         }
         catch (Exception ex)
         {
             Status = $"Erro ao criar configuração: {ex.Message}";
+            ProgressMessage = "Falha ao criar configuração.";
         }
-    }
-
-    private bool CanCreateConfiguration()
-    {
-        return !string.IsNullOrWhiteSpace(GameInstallPath)
-            && !string.IsNullOrWhiteSpace(AppDataBasePath)
-            && !string.IsNullOrWhiteSpace(AppDataPcPath);
+        finally
+        {
+            IsBusy = false;
+            NewConfigurationCommand.NotifyCanExecuteChanged();
+            CaptureTokensCommand.NotifyCanExecuteChanged();
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanCaptureTokens))]
     private void CaptureTokens()
     {
-        ApplyScreenValuesToSettings();
-        _tokenService.Capture(_settings, SelectedAccount!);
-        _settingsService.Save(_settings);
-        Status = $"Tokens da conta {SelectedAccount!.Code} capturados com sucesso.";
+        try
+        {
+            ApplyScreenValuesToSettings();
+            _tokenService.Capture(_settings, SelectedAccount!);
+            _settingsService.Save(_settings);
+            Status = $"Tokens da conta {SelectedAccount!.Code} capturados com sucesso.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Erro ao capturar tokens: {ex.Message}";
+        }
     }
 
     private bool CanCaptureTokens()
     {
-        return SelectedAccount is not null
+        return !IsBusy
+            && SelectedAccount is not null
             && !string.IsNullOrWhiteSpace(AppDataPcPath)
             && !string.IsNullOrWhiteSpace(AppDataBasePath);
+    }
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        NewConfigurationCommand.NotifyCanExecuteChanged();
+        CaptureTokensCommand.NotifyCanExecuteChanged();
     }
 
     private void ApplyScreenValuesToSettings()
@@ -238,7 +276,6 @@ public partial class SetupViewModel : ObservableObject
         _settings.GameInstallPath = GameInstallPath;
         _settings.AppDataBasePath = AppDataBasePath;
         _settings.AppDataPcPath = AppDataPcPath;
-
         PathLayoutService.NormalizeSettings(_settings);
     }
 
@@ -247,6 +284,15 @@ public partial class SetupViewModel : ObservableObject
         GameInstallPath = _settings.GameInstallPath;
         AppDataBasePath = _settings.AppDataBasePath;
         AppDataPcPath = _settings.AppDataPcPath;
+    }
+
+    private void ReloadAccounts()
+    {
+        Accounts.Clear();
+        foreach (var account in _settings.Accounts.OrderBy(account => account.SlotNumber))
+        {
+            Accounts.Add(account);
+        }
     }
 
     private void TryAutoDetectPaths()
@@ -261,64 +307,37 @@ public partial class SetupViewModel : ObservableObject
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var localLowPath = Path.GetFullPath(Path.Combine(localAppData, "..", "LocalLow"));
-
             if (Directory.Exists(localLowPath))
             {
                 _settings.AppDataBasePath = localLowPath;
             }
         }
 
-        if (string.IsNullOrWhiteSpace(_settings.AppDataPcPath) &&
-            !string.IsNullOrWhiteSpace(_settings.AppDataBasePath))
+        if (!string.IsNullOrWhiteSpace(_settings.AppDataBasePath))
         {
-            var candidate = Path.Combine(_settings.AppDataBasePath, "XD", "PC");
-
-            if (Directory.Exists(candidate))
-            {
-                _settings.AppDataPcPath = candidate;
-            }
+            _settings.AppDataPcPath = PathLayoutService.BuildPcRuntimePath(_settings.AppDataBasePath);
         }
     }
 
     private void TryAutoDetectGameInstallPath()
     {
-        if (!string.IsNullOrWhiteSpace(_settings.GameInstallPath) &&
-            Directory.Exists(_settings.GameInstallPath))
+        if (!string.IsNullOrWhiteSpace(_settings.GameInstallPath) && Directory.Exists(_settings.GameInstallPath))
         {
             return;
         }
 
-        var exactCandidates = new[]
+        var candidates = new[]
         {
             @"C:\Program Files (x86)\XD\Ragnarok M Classic Global",
             @"D:\Program Files (x86)\XD\Ragnarok M Classic Global",
             @"E:\Program Files (x86)\XD\Ragnarok M Classic Global",
-            @"F:\Program Files (x86)\XD\Ragnarok M Classic Global"
+            @"F:\Program Files (x86)\XD\Ragnarok M Classic Global",
+            @"C:\XD\Ragnarok M Classic Global",
+            @"D:\XD\Ragnarok M Classic Global",
+            @"E:\XD\Ragnarok M Classic Global",
+            @"F:\XD\Ragnarok M Classic Global"
         };
 
-        foreach (var candidate in exactCandidates)
-        {
-            if (!Directory.Exists(candidate))
-            {
-                continue;
-            }
-
-            var executables = new[]
-            {
-                Path.Combine(candidate, "ro_win.exe"),
-                Path.Combine(candidate, "ro_win1.exe"),
-                Path.Combine(candidate, "launcher.exe"),
-                Path.Combine(candidate, "Launcher.exe")
-            };
-
-            if (executables.Any(File.Exists))
-            {
-                _settings.GameInstallPath = candidate;
-                return;
-            }
-
-            _settings.GameInstallPath = candidate;
-            return;
-        }
+        _settings.GameInstallPath = candidates.FirstOrDefault(Directory.Exists) ?? _settings.GameInstallPath;
     }
 }
